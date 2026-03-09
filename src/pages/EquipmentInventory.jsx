@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import logo from "../assets/caaplogo.svg";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, History, Pencil, Trash2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 function StatusBadge({ status }) {
@@ -40,6 +40,10 @@ export default function EquipmentInventory() {
   // 1. Create state to hold your backend data
   const [equipmentList, setEquipmentList] = useState([]);
   const [loading, setLoading] = useState(true);
+  // 👇 Add these three lines
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All Categories");
+  const [statusFilter, setStatusFilter] = useState("All Statuses");
 
   // 2. Fetch data when the component loads AND every 5 seconds
   useEffect(() => {
@@ -68,6 +72,56 @@ export default function EquipmentInventory() {
     // CLEANUP: Stop polling if the user leaves this page
     return () => clearInterval(intervalId);
   }, [location.key]);
+
+  // 👇 Add this filtering logic before the return statement
+  const filteredEquipment = equipmentList.filter((item) => {
+    // 1. Check if it matches the search query
+    // (We use ?. just in case an item has a blank serial number or model)
+    const matchesSearch =
+      searchQuery === "" ||
+      item.item_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.serial_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.model_no?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // 2. Check if it matches the category dropdown
+    const matchesCategory =
+      categoryFilter === "All Categories" || item.category === categoryFilter;
+
+    // 3. Check if it matches the status dropdown
+    const matchesStatus =
+      statusFilter === "All Statuses" || item.status === statusFilter;
+
+    // The item must pass all three tests to show up in the table
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  // Add this new function to handle deleting
+  const handleDelete = async (id) => {
+    // 1. Ask the user for confirmation so they don't delete by accident
+    const isConfirmed = window.confirm(
+      "Are you sure you want to delete this equipment? This action cannot be undone.",
+    );
+
+    if (!isConfirmed) return; // Stop if they click "Cancel"
+
+    try {
+      // 2. Tell the backend to delete the item
+      // Note: Make sure this URL matches your actual backend delete route!
+      const res = await fetch(`/api/equipment/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete equipment");
+      }
+
+      // 3. Update the table instantly by filtering out the deleted item
+      setEquipmentList((prevList) => prevList.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error("Error deleting:", error);
+      alert("Failed to delete the equipment. Please try again.");
+    }
+  };
   return (
     <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden m-0 p-0">
       <header className="w-full bg-[#0A2463] text-white px-6 py-4 flex-none">
@@ -96,20 +150,30 @@ export default function EquipmentInventory() {
             <div className="flex-col flex-col md:flex-row md:justify-between gap-3">
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by Item Name, Serial No., Model No..."
                 className="w-full md:w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
 
               <div className="flex flex-wrap items-center justify-between gap-4 py-2">
                 <div className="flex flex-wrap gap-2">
-                  <select className="w-50 border border-slate-200 rounded-lg px-3 py-2 text-sm hover:border-blue-400 transition-colors duration-200">
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="w-50 border border-slate-200 rounded-lg px-3 py-2 text-sm hover:border-blue-400 transition-colors duration-200"
+                  >
                     <option>All Categories </option>
                     <option>Communication </option>
                     <option>Meteorological </option>
                     <option>Navigation </option>
                   </select>
 
-                  <select className="w-50 border border-slate-200 rounded-lg px-3 py-2 text-sm hover:border-blue-400 transition-colors duration-200">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-50 border border-slate-200 rounded-lg px-3 py-2 text-sm hover:border-blue-400 transition-colors duration-200"
+                  >
                     <option>All Statuses</option>
                     <option>Operational</option>
                     <option>Defective</option>
@@ -186,7 +250,7 @@ export default function EquipmentInventory() {
                     </td>
                   </tr>
                 ) : (
-                  equipmentList.map((row, index) => (
+                  filteredEquipment.map((row, index) => (
                     <tr
                       key={row.id || index}
                       className="border-t hover:bg-blue-50"
@@ -231,9 +295,28 @@ export default function EquipmentInventory() {
                       <td className="px-4 py-3 truncate max-w-[100px]">
                         {row.verified_by}
                       </td>
-                      <td className="px-4 py-3">
-                        <button className="text-blue-600 hover:text-blue-800 font-medium">
-                          Edit
+                      <td className="px-4 py-3 gap-2 flex items-center">
+                        <button className="hover:#4A5565">
+                          <History size={16} color="#4A5565" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            navigate("/add-equipment", {
+                              state: {
+                                backgroundLocation: location,
+                                equipmentData: row, // 👈 Pass the specific row's data to the form!
+                              },
+                            })
+                          }
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          <Pencil size={16} color="#155DFC" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(row.id)}
+                          className="p-1.5 rounded-md transition-colors duration-200 hover:bg-red-100"
+                        >
+                          <Trash2 size={16} color="#E7000B" />
                         </button>
                       </td>
                     </tr>
