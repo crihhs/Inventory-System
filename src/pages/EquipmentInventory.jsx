@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import logo from "../assets/caaplogo.svg";
 import { Download, Plus, History, Pencil, Trash2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import {  MaintenanceHistoryDialog } from "./MaintenanceHistory";
 
+// Status Badge
 function StatusBadge({ status }) {
   const styles =
     status === "Operational"
       ? "bg-emerald-100 text-emerald-700"
       : status === "Defective"
-        ? "bg-red-100 text-red-700"
-        : "bg-amber-100 text-amber-700";
+      ? "bg-red-100 text-red-700"
+      : "bg-amber-100 text-amber-700";
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles}`}>
@@ -17,15 +19,17 @@ function StatusBadge({ status }) {
     </span>
   );
 }
+
+// Category Badge
 function CategoryBadge({ category }) {
   const styles =
     category === "Communication"
       ? "bg-blue-100 text-blue-700"
       : category === "Meteorological"
-        ? "bg-cyan-100 text-cyan-700"
-        : category === "Navigation"
-          ? "bg-green-100 text-green-700"
-          : "bg-slate-100 text-slate-700";
+      ? "bg-cyan-100 text-cyan-700"
+      : category === "Navigation"
+      ? "bg-green-100 text-green-700"
+      : "bg-slate-100 text-slate-700";
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles}`}>
@@ -33,11 +37,12 @@ function CategoryBadge({ category }) {
     </span>
   );
 }
+
+// Equipment Inventory Component
 export default function EquipmentInventory() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 1. Create state to hold your backend data
   const [equipmentList, setEquipmentList] = useState([]);
   const [loading, setLoading] = useState(true);
   // 👇 Add these three lines
@@ -45,7 +50,20 @@ export default function EquipmentInventory() {
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
 
-  // 2. Fetch data when the component loads AND every 5 seconds
+  // Modal states
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const openHistory = (equipment) => {
+    setSelectedEquipment(equipment);
+    setIsHistoryOpen(true);
+  };
+
+  const closeHistory = () => {
+    setSelectedEquipment(null);
+    setIsHistoryOpen(false);
+  };
+
   useEffect(() => {
     const fetchEquipment = async () => {
       try {
@@ -57,19 +75,12 @@ export default function EquipmentInventory() {
       } catch (err) {
         console.error("Error fetching equipment:", err);
       } finally {
-        setLoading(false); // Stop the initial loading state
+        setLoading(false);
       }
     };
 
-    // Fetch immediately when the page loads or modal closes
     fetchEquipment();
-
-    // BACKGROUND POLLING: Fetch fresh data every 5 seconds
-    const intervalId = setInterval(() => {
-      fetchEquipment();
-    }, 5000);
-
-    // CLEANUP: Stop polling if the user leaves this page
+    const intervalId = setInterval(fetchEquipment, 5000);
     return () => clearInterval(intervalId);
   }, [location.key]);
 
@@ -124,6 +135,7 @@ export default function EquipmentInventory() {
   };
   return (
     <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden m-0 p-0">
+      {/* Header */}
       <header className="w-full bg-[#0A2463] text-white px-6 py-4 flex-none">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -135,7 +147,9 @@ export default function EquipmentInventory() {
         </div>
       </header>
 
+      {/* Main Content */}
       <div className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden">
+        {/* Title */}
         <div className="flex-none">
           <h2 className="text-xl font-semibold text-slate-900">
             Equipment Inventory
@@ -145,9 +159,10 @@ export default function EquipmentInventory() {
           </p>
         </div>
 
+        {/* Search & Filters */}
         <div className="bg-white rounded-xl shadow-sm flex-none">
           <div className="p-4 space-y-3">
-            <div className="flex-col flex-col md:flex-row md:justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:justify-between gap-3">
               <input
                 type="text"
                 value={searchQuery}
@@ -204,6 +219,7 @@ export default function EquipmentInventory() {
           </div>
         </div>
 
+        {/* Equipment Table */}
         <div className="bg-white rounded-xl shadow-sm flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-auto">
             <table className="w-full text-sm text-left whitespace-nowrap">
@@ -222,15 +238,13 @@ export default function EquipmentInventory() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Remarks</th>
                   <th className="px-4 py-3">Location</th>
-                  <th className="px-4 py-3 ">Date Last Verified</th>
+                  <th className="px-4 py-3">Date Last Verified</th>
                   <th className="px-4 py-3">Verified By</th>
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-200">
-                {" "}
-                {/* 3. Show a loading state, empty state, or map the real data */}
                 {loading ? (
                   <tr>
                     <td
@@ -255,7 +269,6 @@ export default function EquipmentInventory() {
                       key={row.id || index}
                       className="border-t hover:bg-blue-50"
                     >
-                      {/* Make sure these match the keys you saved in AddEquipment formData */}
                       <td className="px-4 py-3">{row.date_received}</td>
                       <td className="px-4 py-3">
                         <CategoryBadge category={row.category} />
@@ -295,7 +308,9 @@ export default function EquipmentInventory() {
                       <td className="px-4 py-3 truncate max-w-[100px]">
                         {row.verified_by}
                       </td>
-                      <td className="px-4 py-3 gap-2 flex items-center">
+                      <td 
+                      onClick={() => openHistory(row)}
+                      className="px-4 py-3 gap-2 flex items-center">
                         <button className="hover:#4A5565">
                           <History size={16} color="#4A5565" />
                         </button>
@@ -327,6 +342,19 @@ export default function EquipmentInventory() {
           </div>
         </div>
       </div>
+
+      {/* Maintenance History Modal */}
+      <MaintenanceHistoryDialog
+        isOpen={isHistoryOpen}
+        onClose={closeHistory}
+        item={selectedEquipment}
+        onSave={(updatedItem) => {
+          // Update the equipment list when a new maintenance record is added
+          setEquipmentList((prevList) =>
+            prevList.map((eq) => (eq.id === updatedItem.id ? updatedItem : eq))
+          );
+        }}
+      />
     </div>
   );
 }
