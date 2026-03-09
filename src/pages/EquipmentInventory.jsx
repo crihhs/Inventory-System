@@ -8,8 +8,8 @@ function StatusBadge({ status }) {
     status === "Operational"
       ? "bg-emerald-100 text-emerald-700"
       : status === "Defective"
-      ? "bg-red-100 text-red-700"
-      : "bg-amber-100 text-amber-700";
+        ? "bg-red-100 text-red-700"
+        : "bg-amber-100 text-amber-700";
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles}`}>
@@ -22,10 +22,10 @@ function CategoryBadge({ category }) {
     category === "Communication"
       ? "bg-blue-100 text-blue-700"
       : category === "Meteorological"
-      ? "bg-cyan-100 text-cyan-700"
-      : category === "Navigation"
-      ? "bg-green-100 text-green-700"
-      : "bg-slate-100 text-slate-700";
+        ? "bg-cyan-100 text-cyan-700"
+        : category === "Navigation"
+          ? "bg-green-100 text-green-700"
+          : "bg-slate-100 text-slate-700";
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles}`}>
@@ -37,7 +37,7 @@ export default function EquipmentInventory() {
   const location = useLocation();
   const navigate = useNavigate();
 
- // 1. Create state to hold your backend data
+  // 1. Create state to hold your backend data
   const [equipmentList, setEquipmentList] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,9 +45,9 @@ export default function EquipmentInventory() {
   useEffect(() => {
     const fetchEquipment = async () => {
       try {
-        const res = await fetch("/api/equipment"); 
+        const res = await fetch("/api/equipment");
         if (!res.ok) throw new Error("Failed to fetch data");
-        
+
         const data = await res.json();
         setEquipmentList(data);
       } catch (err) {
@@ -63,15 +63,14 @@ export default function EquipmentInventory() {
     // BACKGROUND POLLING: Fetch fresh data every 5 seconds
     const intervalId = setInterval(() => {
       fetchEquipment();
-    }, 5000); 
+    }, 5000);
 
     // CLEANUP: Stop polling if the user leaves this page
     return () => clearInterval(intervalId);
-
   }, [location.key]);
   return (
-    <div className="min-h-screen w-full bg-slate-50 m-0 p-0">
-      <header className="w-full bg-[#0A2463] text-white px-6 py-4">
+    <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden m-0 p-0">
+      <header className="w-full bg-[#0A2463] text-white px-6 py-4 flex-none">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img src={logo} alt="Logo" className="h-12 w-auto" />
@@ -82,8 +81,8 @@ export default function EquipmentInventory() {
         </div>
       </header>
 
-      <div className="p-6 space-y-6">
-        <div>
+      <div className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden">
+        <div className="flex-none">
           <h2 className="text-xl font-semibold text-slate-900">
             Equipment Inventory
           </h2>
@@ -92,7 +91,7 @@ export default function EquipmentInventory() {
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm">
+        <div className="bg-white rounded-xl shadow-sm flex-none">
           <div className="p-4 space-y-3">
             <div className="flex-col flex-col md:flex-row md:justify-between gap-3">
               <input
@@ -141,67 +140,101 @@ export default function EquipmentInventory() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left table-fixed">
-              <thead className="bg-slate-100 text-xs text-slate-600 uppercase">
+        <div className="bg-white rounded-xl shadow-sm flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-auto">
+            <table className="w-full text-sm text-left whitespace-nowrap">
+              <thead className="bg-slate-100 text-xs text-slate-600 uppercase sticky top-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
                 <tr>
-                  <th className="px-4 py-3 w-40">Date Received/Installed</th>
-                  <th className="px-4 py-3 w-35">Category</th>
+                  <th className="px-4 py-3">Date Received/Installed</th>
+                  <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">System</th>
-                  <th className="px-4 py-3 w-18">Qty</th>
+                  <th className="px-4 py-3">Qty</th>
                   <th className="px-4 py-3">Unit</th>
                   <th className="px-4 py-3">Item Name</th>
                   <th className="px-4 py-3">Description</th>
                   <th className="px-4 py-3">Brand</th>
                   <th className="px-4 py-3">Serial No.</th>
-                  <th className="px-4 py-3 w-35">Model No./Part No.</th>
+                  <th className="px-4 py-3">Model No./Part No.</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Remarks</th>
                   <th className="px-4 py-3">Location</th>
-                  <th className="px-4 py-3 w-40">Date Last Verified</th>
+                  <th className="px-4 py-3 ">Date Last Verified</th>
                   <th className="px-4 py-3">Verified By</th>
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
 
-              <tbody>
+              <tbody className="divide-y divide-slate-200">
+                {" "}
                 {/* 3. Show a loading state, empty state, or map the real data */}
                 {loading ? (
                   <tr>
-                    <td colSpan="16" className="px-4 py-8 text-center text-slate-500">
+                    <td
+                      colSpan="16"
+                      className="px-4 py-8 text-center text-slate-500"
+                    >
                       Loading equipment...
                     </td>
                   </tr>
                 ) : equipmentList.length === 0 ? (
                   <tr>
-                    <td colSpan="16" className="px-4 py-8 text-center text-slate-500">
+                    <td
+                      colSpan="16"
+                      className="px-4 py-8 text-center text-slate-500"
+                    >
                       No equipment found. Add some to get started!
                     </td>
                   </tr>
                 ) : (
                   equipmentList.map((row, index) => (
-                    <tr key={row.id || index} className="border-t hover:bg-blue-50">
+                    <tr
+                      key={row.id || index}
+                      className="border-t hover:bg-blue-50"
+                    >
                       {/* Make sure these match the keys you saved in AddEquipment formData */}
                       <td className="px-4 py-3">{row.date_received}</td>
-                      <td className="px-4 py-3"><CategoryBadge category={row.category}/></td>
-                      <td className="px-4 py-3 truncate max-w-[150px]">{row.system}</td>
+                      <td className="px-4 py-3">
+                        <CategoryBadge category={row.category} />
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.system}
+                      </td>
                       <td className="px-4 py-3 truncate">{row.qty}</td>
-                      <td className="px-4 py-3 truncate max-w-[150px]">{row.unit}</td>
-                      <td className="px-4 py-3 font-medium truncate max-w-[150px]">{row.item_name}</td>
-                      <td className="px-4 py-3 max-w-xs truncate max-w-[150px]">{row.description}</td>
-                      <td className="px-4 py-3 truncate max-w-[150px]">{row.brand}</td>
-                      <td className="px-4 py-3 truncate max-w-[150px]">{row.serial_no}</td>
-                      <td className="px-4 py-3 truncate max-w-[150px]">{row.model_no}</td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.unit}
+                      </td>
+                      <td className="px-4 py-3 font-medium truncate max-w-[100px]">
+                        {row.item_name}
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.description}
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.brand}
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.serial_no}
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.model_no}
+                      </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={row.status} />
                       </td>
-                      <td className="px-4 py-3 truncate max-w-[150px]">{row.remarks}</td>
-                      <td className="px-4 py-3 truncate max-w-[150px]">{row.location}</td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.remarks}
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.location}
+                      </td>
                       <td className="px-4 py-3">{row.date_last_verified}</td>
-                      <td className="px-4 py-3 truncate max-w-[150px]">{row.verified_by}</td>
+                      <td className="px-4 py-3 truncate max-w-[100px]">
+                        {row.verified_by}
+                      </td>
                       <td className="px-4 py-3">
-                         <button className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                        <button className="text-blue-600 hover:text-blue-800 font-medium">
+                          Edit
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -209,7 +242,6 @@ export default function EquipmentInventory() {
               </tbody>
             </table>
           </div>
-
         </div>
       </div>
     </div>
