@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function AddEquipment() {
   const [openModal, setOpenModal] = useState(true); // 👈 open immediately
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const editingData = location.state?.equipmentData;
 
   const close = () => {
     setOpenModal(false);
@@ -12,7 +15,7 @@ export default function AddEquipment() {
 
   const [saving, setSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState( editingData || {
     date_received: "",
     category: "",
     system: "",
@@ -41,8 +44,13 @@ export default function AddEquipment() {
     setSaving(true);
 
     try {
-      const res = await fetch("/api/equipment", {
-        method: "POST",
+const isEditing = !!editingData;
+      // Note: Make sure your backend uses the ID like this for updates!
+      const url = isEditing ? `/api/equipment/${editingData.id}` : "/api/equipment";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
