@@ -1,43 +1,78 @@
+import { useState, useEffect } from "react";
 import logo from "../assets/caaplogo.svg";
-
-const rows = [
-  {
-    date: "2023-05-15",
-    category: "Navigation Equipment",
-    system: "DVOR/DME",
-    qty: 2,
-    unit: "Units",
-    item: "VOR Transmitter",
-    desc: "VHF Omnidirectional Range Transmitter System",
-    brand: "Thales",
-    serial: "VOR-2023-001",
-    model: "VOR-4352A",
-    property: "CAAP-X-NAV-B01",
-    status: "Operational",
-  },
-];
+import { Download, Plus } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 function StatusBadge({ status }) {
   const styles =
     status === "Operational"
       ? "bg-emerald-100 text-emerald-700"
       : status === "Defective"
-        ? "bg-red-100 text-red-700"
-        : "bg-amber-100 text-amber-700";
+      ? "bg-red-100 text-red-700"
+      : "bg-amber-100 text-amber-700";
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles}`}>
-      {status}
+      {status || "Unknown"}
     </span>
   );
 }
+function CategoryBadge({ category }) {
+  const styles =
+    category === "Communication"
+      ? "bg-blue-100 text-blue-700"
+      : category === "Meteorological"
+      ? "bg-cyan-100 text-cyan-700"
+      : category === "Navigation"
+      ? "bg-green-100 text-green-700"
+      : "bg-slate-100 text-slate-700";
 
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles}`}>
+      {category || "Uncategorized"}
+    </span>
+  );
+}
 export default function EquipmentInventory() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+ // 1. Create state to hold your backend data
+  const [equipmentList, setEquipmentList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 2. Fetch data when the component loads AND every 5 seconds
+  useEffect(() => {
+    const fetchEquipment = async () => {
+      try {
+        const res = await fetch("/api/equipment"); 
+        if (!res.ok) throw new Error("Failed to fetch data");
+        
+        const data = await res.json();
+        setEquipmentList(data);
+      } catch (err) {
+        console.error("Error fetching equipment:", err);
+      } finally {
+        setLoading(false); // Stop the initial loading state
+      }
+    };
+
+    // Fetch immediately when the page loads or modal closes
+    fetchEquipment();
+
+    // BACKGROUND POLLING: Fetch fresh data every 5 seconds
+    const intervalId = setInterval(() => {
+      fetchEquipment();
+    }, 5000); 
+
+    // CLEANUP: Stop polling if the user leaves this page
+    return () => clearInterval(intervalId);
+
+  }, [location.key]);
   return (
     <div className="min-h-screen w-full bg-slate-50 m-0 p-0">
       <header className="w-full bg-[#0A2463] text-white px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* LEFT SIDE (logo + title together) */}
           <div className="flex items-center gap-4">
             <img src={logo} alt="Logo" className="h-12 w-auto" />
             <h1 className="text-2xl font-semibold">
@@ -47,9 +82,7 @@ export default function EquipmentInventory() {
         </div>
       </header>
 
-      {/* Page Content */}
       <div className="p-6 space-y-6">
-        {/* Page Title */}
         <div>
           <h2 className="text-xl font-semibold text-slate-900">
             Equipment Inventory
@@ -59,105 +92,124 @@ export default function EquipmentInventory() {
           </p>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-xl shadow-sm">
-          {/* Toolbar */}
-          <div className="p-4 border-b space-y-3">
-            {/* Search + Buttons */}
-            <div className="flex flex-col md:flex-row md:justify-between gap-3">
+          <div className="p-4 space-y-3">
+            <div className="flex-col flex-col md:flex-row md:justify-between gap-3">
               <input
                 type="text"
                 placeholder="Search by Item Name, Serial No., Model No..."
-                className="w-full md:w-96 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full md:w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
 
-              <div className="flex gap-2">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                  + Add Equipment
-                </button>
+              <div className="flex flex-wrap items-center justify-between gap-4 py-2">
+                <div className="flex flex-wrap gap-2">
+                  <select className="w-50 border border-slate-200 rounded-lg px-3 py-2 text-sm hover:border-blue-400 transition-colors duration-200">
+                    <option>All Categories </option>
+                    <option>Communication </option>
+                    <option>Meteorological </option>
+                    <option>Navigation </option>
+                  </select>
 
-                <button className="border border-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50">
-                  Export to Excel
-                </button>
+                  <select className="w-50 border border-slate-200 rounded-lg px-3 py-2 text-sm hover:border-blue-400 transition-colors duration-200">
+                    <option>All Statuses</option>
+                    <option>Operational</option>
+                    <option>Defective</option>
+                    <option>Spare</option>
+                    <option>Unverified</option>
+                    <option>Used</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      navigate("/add-equipment", {
+                        state: { backgroundLocation: location },
+                      })
+                    }
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
+                  >
+                    <Plus size={16} /> Add Equipment
+                  </button>
+
+                  <button className="flex items-center gap-2 border border-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-slate-100 hover:shadow-md hover:scale-[1.02]">
+                    <Download size={16} /> Export to Excel
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              <select className="border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                <option>All Categories</option>
-              </select>
-
-              <select className="border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                <option>All Systems</option>
-              </select>
-
-              <select className="border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                <option>All Statuses</option>
-              </select>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm">
-          {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1200px] text-sm text-left">
+            <table className="w-full text-sm text-left table-fixed">
               <thead className="bg-slate-100 text-xs text-slate-600 uppercase">
                 <tr>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3 w-40">Date Received/Installed</th>
+                  <th className="px-4 py-3 w-35">Category</th>
                   <th className="px-4 py-3">System</th>
-                  <th className="px-4 py-3">Qty</th>
+                  <th className="px-4 py-3 w-18">Qty</th>
                   <th className="px-4 py-3">Unit</th>
-                  <th className="px-4 py-3">Item</th>
+                  <th className="px-4 py-3">Item Name</th>
                   <th className="px-4 py-3">Description</th>
                   <th className="px-4 py-3">Brand</th>
-                  <th className="px-4 py-3">Serial</th>
-                  <th className="px-4 py-3">Model</th>
-                  <th className="px-4 py-3">Property No</th>
+                  <th className="px-4 py-3">Serial No.</th>
+                  <th className="px-4 py-3 w-35">Model No./Part No.</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Remarks</th>
+                  <th className="px-4 py-3">Location</th>
+                  <th className="px-4 py-3 w-40">Date Last Verified</th>
+                  <th className="px-4 py-3">Verified By</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {rows.map((row, index) => (
-                  <tr key={index} className="border-t hover:bg-blue-50">
-                    <td className="px-4 py-3">{row.date}</td>
-                    <td className="px-4 py-3">{row.category}</td>
-                    <td className="px-4 py-3">{row.system}</td>
-                    <td className="px-4 py-3 text-center">{row.qty}</td>
-                    <td className="px-4 py-3">{row.unit}</td>
-                    <td className="px-4 py-3 font-medium">{row.item}</td>
-                    <td className="px-4 py-3 max-w-xs truncate">{row.desc}</td>
-                    <td className="px-4 py-3">{row.brand}</td>
-                    <td className="px-4 py-3">{row.serial}</td>
-                    <td className="px-4 py-3">{row.model}</td>
-                    <td className="px-4 py-3">{row.property}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={row.status} />
+                {/* 3. Show a loading state, empty state, or map the real data */}
+                {loading ? (
+                  <tr>
+                    <td colSpan="16" className="px-4 py-8 text-center text-slate-500">
+                      Loading equipment...
                     </td>
                   </tr>
-                ))}
+                ) : equipmentList.length === 0 ? (
+                  <tr>
+                    <td colSpan="16" className="px-4 py-8 text-center text-slate-500">
+                      No equipment found. Add some to get started!
+                    </td>
+                  </tr>
+                ) : (
+                  equipmentList.map((row, index) => (
+                    <tr key={row.id || index} className="border-t hover:bg-blue-50">
+                      {/* Make sure these match the keys you saved in AddEquipment formData */}
+                      <td className="px-4 py-3">{row.date_received}</td>
+                      <td className="px-4 py-3"><CategoryBadge category={row.category}/></td>
+                      <td className="px-4 py-3 truncate max-w-[150px]">{row.system}</td>
+                      <td className="px-4 py-3 truncate">{row.qty}</td>
+                      <td className="px-4 py-3 truncate max-w-[150px]">{row.unit}</td>
+                      <td className="px-4 py-3 font-medium truncate max-w-[150px]">{row.item_name}</td>
+                      <td className="px-4 py-3 max-w-xs truncate max-w-[150px]">{row.description}</td>
+                      <td className="px-4 py-3 truncate max-w-[150px]">{row.brand}</td>
+                      <td className="px-4 py-3 truncate max-w-[150px]">{row.serial_no}</td>
+                      <td className="px-4 py-3 truncate max-w-[150px]">{row.model_no}</td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={row.status} />
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[150px]">{row.remarks}</td>
+                      <td className="px-4 py-3 truncate max-w-[150px]">{row.location}</td>
+                      <td className="px-4 py-3">{row.date_last_verified}</td>
+                      <td className="px-4 py-3 truncate max-w-[150px]">{row.verified_by}</td>
+                      <td className="px-4 py-3">
+                         <button className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Footer */}
-          <div className="flex justify-between items-center p-4 text-sm text-slate-600 border-t">
-            <div>Showing 1 to 1 of 1 entries</div>
-            <div className="flex gap-1">
-              <button className="border px-3 py-1 rounded hover:bg-slate-100">
-                Prev
-              </button>
-              <button className="bg-blue-600 text-white px-3 py-1 rounded">
-                1
-              </button>
-              <button className="border px-3 py-1 rounded hover:bg-slate-100">
-                Next
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
