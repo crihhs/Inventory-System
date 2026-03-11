@@ -96,7 +96,7 @@ const isEditing = !!editingData;
                 </label>
                 <input
                   value={formData.date_received}
-                  required
+                  
                   onChange={setField("date_received")}
                   type="date"
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -118,21 +118,58 @@ const isEditing = !!editingData;
               </div>
               <div>
                 <label className="text-sm font-medium">System</label>
-                <input
-                  type="text"
-                  value={formData.system}
-                  required
-                  onChange={setField("system")}
-                  placeholder="Ex: LLZ, DME 310, etc..."
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-200"
-                />
+<input
+                list="systems"
+                value={formData.system}
+                onChange={setField("system")}
+                placeholder="Type or select a system"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-200"
+              />
+
+              <datalist id="systems">
+                <option value="ATC COMMS SYSTEM" />
+                <option value="ATIS" />
+                <option value="AMHS" />
+                <option value="AWOS" />
+                <option value="Battery" />
+                <option value="Ceilometer" />
+                <option value="CWP" />
+                <option value="DME" />
+                <option value="DME 310" />
+                <option value="DME 320" />
+                <option value="DVOR" />
+                <option value="DVOR 220" />
+                <option value="Emergency Radio Comms/Power" />
+                <option value="GP" />
+                <option value="HF Radio" />
+                <option value="Humidity" />
+                <option value="ILS" />
+                <option value="LLZ" />
+                <option value="LLZ/GP" />
+                <option value="NAVIGATION MONITORING" />
+                <option value="Power System" />
+                <option value="Pressure" />
+                <option value="Radio" />
+                <option value="Radio Filter" />
+                <option value="Rack" />
+                <option value="RCMU Rack" />
+                <option value="RVR" />
+                <option value="Temperature" />
+                <option value="Test Instrument" />
+                <option value="UPS" />
+                <option value="VCS" />
+                <option value="VSAT" />
+                <option value="Wind" />
+                <option value="Accessories" />
+                <option value="For Calibration" />
+              </datalist>
               </div>
               <div>
                 <label className="text-sm font-medium">Quantity </label>
                 <input
                   type="number"
                   value={formData.qty}
-                  required
+                  
                   onChange={setField("qty")}
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-200"
                 />
@@ -152,7 +189,7 @@ const isEditing = !!editingData;
                 <input
                   type="text"
                   value={formData.item_name}
-                  required
+                  
                   onChange={setField("item_name")}
                   placeholder="Ex: VHF Radio, Headset, etc..."
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-200"
@@ -172,7 +209,6 @@ const isEditing = !!editingData;
                 <input
                   type="text"
                   value={formData.brand}
-                  required
                   onChange={setField("brand")}
                   placeholder="Ex: Rohde and Schwarz, Vascom, etc..."
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-200"
@@ -193,7 +229,6 @@ const isEditing = !!editingData;
                 </label>
                 <input
                   value={formData.model_no}
-                  required
                   onChange={setField("model_no")}
                   type="text"
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-200"
@@ -218,13 +253,32 @@ const isEditing = !!editingData;
               </div>
               <div>
                 <label className="text-sm font-medium">Location</label>
-                <input
-                  type="text"
+<input
+                  list="locations"
                   value={formData.location}
                   onChange={setField("location")}
-                  placeholder="Ex: LLZ SHELTER, CABROOM, etc..."
+                  placeholder="Type or select a location"
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-200"
                 />
+
+                <datalist id="locations">
+                  <option value="LLZ SHELTER" />
+                  <option value="CABROOM" />
+                  <option value="ANS EQUIPMENT ROOM / STORAGE AREA" />
+                  <option value="GP SHELTER" />
+                  <option value="NAV-AIDS MONITORING ROOM" />
+                  <option value="ANS EQUIPMENT - ATIS RACK" />
+                  <option value="DVOR STORAGE ROOM (BACK)" />
+                  <option value="DVOR/DME SHELTER" />
+                  <option value="ANS Remote Navigational Aid Room" />
+                  <option value="ANS EQUIPMENT RACK 1" />
+                  <option value="ANS EQUIPMENT RACK 2" />
+                  <option value="ANS EQUIPMENT RACK 3" />
+                  <option value="DVOR Shelter (Back)" />
+                  <option value="AIRSIDE MET LOCATION" />
+                  <option value="FIELD" />
+                  <option value="UNKNOWN LOCATION" />
+                </datalist>
               </div>
               <div className="md:col-span-2">
                 <label className="text-sm font-medium">Remarks</label>

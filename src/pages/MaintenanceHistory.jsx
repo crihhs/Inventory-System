@@ -1,216 +1,142 @@
-import React, { useState } from 'react';
-import { Calendar, User, Wrench, DollarSign, Plus, X } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
 
-export function MaintenanceHistoryDialog({ isOpen, onClose, item, onSave }) {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    type: 'Inspection',
-    technician: '',
-    description: '',
-    cost: '',
-    nextServiceDate: ''
-  });
+export function MaintenanceHistoryDialog({ isOpen, onClose, item }) {
+  const [historyRecords, setHistoryRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const MAINTENANCE_TYPES = [
-    'Inspection',
-    'Repair',
-    'Overhaul',
-    'Calibration',
-    'Replacement',
-    'Testing'
-  ];
+  // Fetch the history whenever the modal opens for a specific item
+  useEffect(() => {
+    if (!isOpen || !item) return;
 
-  if (!isOpen || !item) return null;
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`http://localhost:4000/api/equipment/${item.id}/history`);
+        if (!res.ok) throw new Error("Failed to fetch history");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newRecord = {
-      id: `m${Date.now()}`,
-      date: formData.date,
-      type: formData.type,
-      technician: formData.technician,
-      description: formData.description,
-      cost: formData.cost ? parseFloat(formData.cost) : undefined,
-      nextServiceDate: formData.nextServiceDate || undefined
+        const data = await res.json();
+        setHistoryRecords(data);
+      } catch (error) {
+        console.error("Error loading history:", error);
+      } finally {
+        setLoading(false);
+      }
     };
-    const updatedItem = {
-      ...item,
-      maintenanceHistory: [newRecord, ...(item.maintenanceHistory || [])]
-    };
-    if (onSave) onSave(updatedItem);
-    setFormData({
-      date: new Date().toISOString().split('T')[0],
-      type: 'Inspection',
-      technician: '',
-      description: '',
-      cost: '',
-      nextServiceDate: ''
-    });
-    setShowAddForm(false);
-  };
 
-  const getMaintenanceTypeColor = (type) => {
-    switch (type) {
-      case 'Inspection': return 'bg-blue-100 text-blue-700';
-      case 'Repair': return 'bg-orange-100 text-orange-700';
-      case 'Overhaul': return 'bg-purple-100 text-purple-700';
-      case 'Calibration': return 'bg-green-100 text-green-700';
-      case 'Replacement': return 'bg-red-100 text-red-700';
-      case 'Testing': return 'bg-cyan-100 text-cyan-700';
-      default: return 'bg-gray-100 text-gray-700';
+    fetchHistory();
+  }, [isOpen, item]);
+
+  // Helper function to turn the paragraph into a clean bulleted list
+  const formatDescription = (description) => {
+    if (!description) return <p className="text-sm text-slate-600">Changes were made to this equipment.</p>;
+
+    // Split the text at every period followed by a space
+    const changes = description.split(". ").filter((c) => c.trim() !== "");
+
+    // If there is only one change (or it's the "Equipment Added" message), just show it as text
+    if (changes.length <= 1) {
+      return <p className="text-sm text-slate-600">{description}</p>;
     }
+
+    // If there are multiple changes, render them as a clean list
+    return (
+      <ul className="mt-2 space-y-1.5">
+        {changes.map((change, idx) => {
+          // Remove any stray periods at the very end of the sentence
+          const cleanChange = change.endsWith(".") ? change.slice(0, -1) : change;
+          
+          return (
+            <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
+              <span className="text-slate-400 mt-[2px]">•</span>
+              <span>{cleanChange}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
   };
+
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Maintenance History</h2>
-          <button onClick={onClose} className="text-gray-600 hover:text-gray-800">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="mb-4">
-          <div className="font-semibold">{item.name}</div>
-          <div className="text-sm">Part Number: {item.partNumber}</div>
-          {item.serialNumber && <div className="text-sm">Serial Number: {item.serialNumber}</div>}
-        </div>
-
-        {!showAddForm && (
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-lg w-[700px] max-w-[95vw] flex flex-col max-h-[85vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Equipment History
+            </h2>
+            <p className="text-sm text-slate-500">
+              {item?.item_name} (SN: {item?.serial_no || "N/A"})
+            </p>
+          </div>
           <button
-            onClick={() => setShowAddForm(true)}
-            className="w-full flex items-center justify-center gap-2 border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-100"
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
           >
-            <Plus className="h-4 w-4" />
-            Add Maintenance Record
+            <X size={20} className="text-slate-500" />
           </button>
-        )}
+        </div>
 
-        {showAddForm && (
-          <form onSubmit={handleSubmit} className="border border-gray-200 p-4 rounded-lg mt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <label className="text-sm font-medium">Date *</label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="border rounded px-2 py-1 text-sm"
-                  required
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium">Maintenance Type *</label>
-                <select
-                  value={formData.type}
-                  onChange={e => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                  className="border rounded px-2 py-1 text-sm"
-                  required
-                >
-                  {MAINTENANCE_TYPES.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
+        {/* Modal Body (Scrollable) */}
+        <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
+          {loading ? (
+            <div className="text-center py-8 text-slate-500 text-sm">
+              Loading history records...
             </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-medium">Technician Name *</label>
-              <input
-                type="text"
-                value={formData.technician}
-                onChange={e => setFormData(prev => ({ ...prev, technician: e.target.value }))}
-                placeholder="e.g., Gwen Gonzales"
-                className="border rounded px-2 py-1 text-sm"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-medium">Description *</label>
-              <textarea
-                value={formData.description}
-                onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                rows={3}
-                placeholder="Describe the maintenance work performed..."
-                className="border rounded px-2 py-1 text-sm"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <label className="text-sm font-medium">Cost (₱)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.cost}
-                  onChange={e => setFormData(prev => ({ ...prev, cost: e.target.value }))}
-                  className="border rounded px-2 py-1 text-sm"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium">Next Service Date</label>
-                <input
-                  type="date"
-                  value={formData.nextServiceDate}
-                  onChange={e => setFormData(prev => ({ ...prev, nextServiceDate: e.target.value }))}
-                  className="border rounded px-2 py-1 text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button type="submit" className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                Add Record
-              </button>
-              <button type="button" onClick={() => setShowAddForm(false)} className="flex-1 border px-4 py-2 rounded hover:bg-gray-100">
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
-
-        <hr className="my-4" />
-
-        <div>
-          <h3 className="font-semibold mb-2">History ({(item.maintenanceHistory || []).length} records)</h3>
-          {(!item.maintenanceHistory || item.maintenanceHistory.length === 0) ? (
-            <div className="text-center py-8 text-gray-400">
-              <Wrench className="h-12 w-12 mx-auto mb-2 opacity-20" />
-              <p>No maintenance records yet</p>
+          ) : historyRecords.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 text-sm bg-white rounded-lg border border-slate-200">
+              No history records found for this equipment.
             </div>
           ) : (
-            <div className="space-y-3">
-              {item.maintenanceHistory.map(record => (
-                <div key={record.id} className="border rounded p-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className={`px-2 py-1 text-xs rounded ${getMaintenanceTypeColor(record.type)}`}>
-                      {record.type}
+            <div className="space-y-4">
+              {historyRecords.map((record, index) => (
+                <div
+                  key={index}
+                  className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm"
+                >
+                  <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                    <span className="text-sm font-semibold text-slate-800">
+                      {record.action_type || "Record Updated"}
                     </span>
-                    {record.cost && (
-                      <div className="flex items-center gap-1 text-sm font-medium">
-                        <DollarSign className="h-3 w-3" /> ₱{record.cost.toLocaleString()}
-                      </div>
-                    )}
+                    <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-1 rounded-md">
+                      {record.date || "Unknown Date"}
+                    </span>
                   </div>
-                  <p className="text-sm mb-2">{record.description}</p>
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" /> {record.technician}
-                    </div>
-                    {record.nextServiceDate && <div>Next Service: {record.nextServiceDate}</div>}
+
+                  {/* 👇 We call our new formatter function here */}
+                  <div className="mb-4 break-words whitespace-pre-wrap text-sm leading-relaxed max-h-32 overflow-y-auto">
+                    {formatDescription(record.description)}
                   </div>
-                  <div className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                    <Calendar className="h-3 w-3" /> {record.date}
+
+                  <div className="mt-3 text-xs text-slate-400 flex items-center gap-1">
+                    Updated by:{" "}
+                    <span className="text-slate-700 font-medium bg-slate-100 px-2 py-0.5 rounded-md">
+                      {record.updated_by || "System"}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-4 border-t border-slate-100 flex justify-end bg-white rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

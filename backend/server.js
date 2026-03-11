@@ -9,6 +9,9 @@ app.use(express.json());
 // Create / open DB file
 const db = new Database("inventory.db");
 
+// 👇 ADD THIS LINE to enable cascading deletes
+db.pragma('foreign_keys = ON');
+
 // Create table if not exists
 db.exec(`
   CREATE TABLE IF NOT EXISTS equipment (
@@ -33,11 +36,34 @@ db.exec(`
   );
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS equipment_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    equipment_id INTEGER,
+    action_type TEXT,
+    description TEXT,
+    updated_by TEXT,
+    date TEXT DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY(equipment_id) REFERENCES equipment(id) ON DELETE CASCADE
+  );
+`);
+
+
 // --- API ROUTES ---
 
 // Get all equipment
 app.get("/api/equipment", (req, res) => {
   const rows = db.prepare("SELECT * FROM equipment ORDER BY id DESC").all();
+  res.json(rows);
+});
+
+// 👇 ADD THIS WHOLE BLOCK: Get history for a specific equipment item
+app.get("/api/equipment/:id/history", (req, res) => {
+  const id = Number(req.params.id);
+  
+  // Fetch all history for this item, sorting by newest first
+  const rows = db.prepare("SELECT * FROM equipment_history WHERE equipment_id = ? ORDER BY id DESC").all(id);
+  
   res.json(rows);
 });
 
@@ -74,11 +100,41 @@ app.post("/api/equipment", (req, res) => {
   res.status(201).json({ id: info.lastInsertRowid });
 });
 
-// Update equipment
+// Update equipment (with detailed history tracking)
 app.put("/api/equipment/:id", (req, res) => {
   const id = Number(req.params.id);
   const e = req.body;
 
+  // 1. Fetch the OLD data before we change anything
+  const oldItem = db.prepare("SELECT * FROM equipment WHERE id = ?").get(id);
+
+  if (!oldItem) {
+    return res.status(404).json({ error: "Equipment not found" });
+  }
+
+  // 2. Compare the old data to the new data to see exactly what changed
+  const changesMade = [];
+  const fieldsToWatch = [
+    "date_received", "category", "system", "qty", "unit", 
+    "item_name", "description", "brand", "serial_no", 
+    "model_no", "status", "remarks", "location", 
+    "date_last_verified", "verified_by"
+  ];
+
+  fieldsToWatch.forEach((field) => {
+    // We convert everything to strings to easily compare them
+    // (e.g., so the number 0 doesn't get confused with an empty string "")
+    const oldValue = oldItem[field] == null ? "" : String(oldItem[field]);
+    const newValue = e[field] == null ? "" : String(e[field]);
+
+    if (oldValue !== newValue) {
+      // Format the field name nicely (e.g., "date_last_verified" -> "date last verified")
+      const cleanFieldName = field.replace(/_/g, " ");
+      changesMade.push(`Changed ${cleanFieldName} from "${oldValue}" to "${newValue}"`);
+    }
+  });
+
+  // 3. Perform the actual update in the database
   const stmt = db.prepare(`
     UPDATE equipment SET
       date_received=@date_received,
@@ -101,6 +157,26 @@ app.put("/api/equipment/:id", (req, res) => {
   `);
 
   const info = stmt.run({ ...e, id });
+
+  // 4. If the update worked AND we actually changed something, log the details!
+  if (info.changes > 0 && changesMade.length > 0) {
+    // Combine all changes into one readable sentence. 
+    // Example: 'Changed qty from "2" to "5". Changed status from "Operational" to "Defective".'
+    const detailedDescription = changesMade.join(". ") + ".";
+
+    const historyStmt = db.prepare(`
+      INSERT INTO equipment_history (equipment_id, action_type, description, updated_by)
+      VALUES (?, ?, ?, ?)
+    `);
+    
+    historyStmt.run(
+      id, 
+      "Equipment Updated", 
+      detailedDescription, // 👈 Saves our exact audit log!
+      e.verified_by || "System User"
+    );
+  }
+
   res.json({ updated: info.changes });
 });
 
@@ -109,6 +185,17 @@ app.delete("/api/equipment/:id", (req, res) => {
   const id = Number(req.params.id);
   const info = db.prepare("DELETE FROM equipment WHERE id=?").run(id);
   res.json({ deleted: info.changes });
+});
+
+const path = require("path");
+
+// Serve the frontend static files from the React build folder
+// NOTE: Change '../frontend/dist' to the actual path of your React build folder!
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+// Anything that doesn't match an API route should serve the React app
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
 
 const PORT = 4000;

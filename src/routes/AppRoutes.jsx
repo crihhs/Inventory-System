@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
-import EquipmentInventory from "../pages/EquipmentInventory";
-import AddEquipment from "../pages/AddEquipment";
+// ⚠️ Make sure these paths match where your files actually live!
+import EquipmentInventory from "../pages/EquipmentInventory.jsx"; 
+import AddEquipment from "../pages/AddEquipment.jsx";
 
 function ModalRoutes() {
   const location = useLocation();
@@ -26,7 +27,8 @@ function ModalRoutes() {
   );
 }
 
-export default function AppRoutes() {
+// 👇 Renamed to App for standard React setup
+export default function App() { 
   return (
     <BrowserRouter>
       <ModalRoutes />
